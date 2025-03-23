@@ -1,0 +1,165 @@
+<!-- edit_resource.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Resource - Resource Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        .map-container {
+            height: 300px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">Resource Management</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('add') }}">Add Resource</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <span class="navbar-text me-3 text-white">
+                        Welcome, <strong>{{ username }}</strong> ({{ role }})
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-lg-8 offset-lg-2">
+                <div class="card">
+                    <div class="card-header bg-{{ 'danger' if role == 'Receiver' else 'info' }}">
+                        <h3 class="mb-0 text-white">
+                            <i class="fas fa-edit me-2"></i>
+                            Edit Resource: {{ resource.name }}
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('edit', id=resource.id) }}">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="name" class="form-label">Resource Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ resource.name }}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="category" class="form-label">Category</label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="">Select a category</option>
+                                        <option value="Food" {% if resource.category == 'Food' %}selected{% endif %}>Food</option>
+                                        <option value="Clothing" {% if resource.category == 'Clothing' %}selected{% endif %}>Clothing</option>
+                                        <option value="Medical" {% if resource.category == 'Medical' %}selected{% endif %}>Medical Supplies</option>
+                                        <option value="Hygiene" {% if resource.category == 'Hygiene' %}selected{% endif %}>Hygiene Products</option>
+                                        <option value="Equipment" {% if resource.category == 'Equipment' %}selected{% endif %}>Equipment</option>
+                                        <option value="Shelter" {% if resource.category == 'Shelter' %}selected{% endif %}>Shelter</option>
+                                        <option value="Other" {% if resource.category == 'Other' %}selected{% endif %}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity</label>
+                                <input type="text" class="form-control" id="quantity" name="quantity" value="{{ resource.quantity }}" required>
+                                <div class="form-text">Specify the amount (e.g., "5 boxes", "10 kg", "20 units")</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location Description</label>
+                                <input type="text" class="form-control" id="location" name="location" value="{{ resource.location }}" required>
+                                <div class="form-text">Enter an address or location description</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Pin Location on Map</label>
+                                <div class="map-container" id="map">
+                                    <div class="text-center pt-5">
+                                        <p class="text-muted">Map location selector will display here</p>
+                                        <small>For demonstration, please enter coordinates manually below</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="latitude" class="form-label">Latitude</label>
+                                    <input type="text" class="form-control" id="latitude" name="latitude" value="{{ resource.latitude or '' }}" placeholder="e.g., 37.7749">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="longitude" class="form-label">Longitude</label>
+                                    <input type="text" class="form-control" id="longitude" name="longitude" value="{{ resource.longitude or '' }}" placeholder="e.g., -122.4194">
+                                </div>
+                            </div>
+                            
+                            {% if role == 'Receiver' %}
+                            <div class="mb-3">
+                                <label for="urgency" class="form-label">Urgency Level</label>
+                                <select class="form-select" id="urgency" name="urgency">
+                                    <option value="Low" {% if resource.urgency == 'Low' %}selected{% endif %}>Low - Needed within weeks</option>
+                                    <option value="Medium" {% if resource.urgency == 'Medium' %}selected{% endif %}>Medium - Needed within days</option>
+                                    <option value="High" {% if resource.urgency == 'High' %}selected{% endif %}>High - Needed immediately</option>
+                                </select>
+                            </div>
+                            {% endif %}
+                            
+                            {% if role == 'Donor' %}
+                            <div class="mb-3">
+                                <label for="expiry" class="form-label">Expiry Date (if applicable)</label>
+                                <input type="date" class="form-control" id="expiry" name="expiry" value="{{ resource.expiry_date }}">
+                                <div class="form-text">Leave blank if not applicable</div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mb-3 text-center">
+                                <button type="submit" class="btn btn-{{ 'danger' if role == 'Receiver' else 'info' }} btn-lg me-2">
+                                    <i class="fas fa-save me-2"></i>Update Resource
+                                </button>
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
